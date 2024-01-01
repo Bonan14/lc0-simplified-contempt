@@ -2208,8 +2208,14 @@ void SearchWorker::FetchSingleNodeResult(NodeToProcess* node_to_process,
   }
   // For NN results, we need to populate policy as well as value.
   // First the value...
-  auto v = -computation.GetQVal(idx_in_computation);
-  auto d = computation.GetDVal(idx_in_computation);
+  double v = 0.0f;
+  double d = 0.0f;
+  int num_edges = 0;
+  // Rescale all edges connected to the node.
+  for (auto& edge : node->Edges()) {
+  num_edges++;
+  auto v_ = -computation.GetQVal(idx_in_computation);
+  auto d_ = computation.GetDVal(idx_in_computation);
   if (params_.GetWDLRescaleRatio() != 1.0f ||
       (params_.GetWDLRescaleDiff() != 0.0f &&
        search_->contempt_mode_ != ContemptMode::NONE)) {
@@ -2217,14 +2223,18 @@ void SearchWorker::FetchSingleNodeResult(NodeToProcess* node_to_process,
     bool root_stm = (search_->contempt_mode_ == ContemptMode::BLACK) ==
                     search_->played_history_.Last().IsBlackToMove();
     auto sign = (root_stm ^ (node_to_process->depth & 1)) ? 1.0f : -1.0f;
-    WDLRescale(v, d, params_.GetWDLRescaleRatio(),
+    WDLRescale(v_, d_, params_.GetWDLRescaleRatio(),
                search_->contempt_mode_ == ContemptMode::NONE
                    ? 0
                    : params_.GetWDLRescaleDiff(),
                sign, false);
   }
-  node_to_process->v = v;
-  node_to_process->d = d;
+  v += v_;
+  d += d_;
+  }
+  // Divide the sum value of edges by the number of edges to get the mean value for the node.
+  node_to_process->v = v / static_cast<float>(num_edges);
+  node_to_process->d = d / static_cast<float>(num_edges);
   node_to_process->m = computation.GetMVal(idx_in_computation);
   // ...and secondly, the policy data.
   // Calculate maximum first.
@@ -2250,6 +2260,7 @@ void SearchWorker::FetchSingleNodeResult(NodeToProcess* node_to_process,
     total += p;
   }
   counter = 0;
+  num_edges = 0;
   // Normalize P values to add up to 1.0.
   const float scale = total > 0.0f ? 1.0f / total : 1.0f;
   for (auto& edge : node->Edges()) {
