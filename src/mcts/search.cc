@@ -2217,8 +2217,8 @@ void SearchWorker::FetchSingleNodeResult(NodeToProcess* node_to_process,
   auto v_ = -computation.GetQVal(idx_in_computation);
   auto d_ = computation.GetDVal(idx_in_computation);
   if (params_.GetWDLRescaleRatio() != 1.0f ||
-      (params_.GetWDLRescaleDiff() != 0.0f &&
-       search_->contempt_mode_ != ContemptMode::NONE)) {
+     (params_.GetWDLRescaleDiff() != 0.0f &&
+      search_->contempt_mode_ != ContemptMode::NONE)) {
     // Check whether root moves are from the set perspective.
     bool root_stm = (search_->contempt_mode_ == ContemptMode::BLACK) ==
                     search_->played_history_.Last().IsBlackToMove();
